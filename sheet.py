@@ -21,6 +21,7 @@ def typehash(sheet):
     #st.write(str(sheet.iloc[0:1].values))
     return hash(str(sheet.iloc[0:1,0:20].values))
 
+st.sidebar.header('Performix Event Viewer')
 logo = st.sidebar.empty()
 uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:
@@ -94,11 +95,13 @@ if uploaded_file is not None:
         df = df.iloc[1:,idxs]
         df = df.replace(0, np.nan)
         #df = df.set_index('Date')
-        trend=st.selectbox('trend',['','ols','lowess'])
+        trend=st.checkbox('trend')
+        #,['','ols','lowess'])
+        
         df = df.replace('-',np.nan).applymap(float)
         #st.write(df)
 
-        fig = px.scatter(df, trendline=trend)
+        fig = px.scatter(df, trendline='lowess' if trend else '')
         st.plotly_chart(fig, use_container_width=True)
         lookdate=st.date_input("specific date",start_date,start_date,end_date)
         if lookdate:
