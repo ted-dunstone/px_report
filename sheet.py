@@ -5,8 +5,11 @@ import math
 import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from streamlit_plotly_events import plotly_events
+
 import matplotlib.pyplot as plt
 import numpy as np
+
 
 st.set_page_config(
     page_title="ID4D", layout="wide"
@@ -74,7 +77,7 @@ if uploaded_file is not None:
             else:
                 if s_hash != typehash(sheet):
                     continue
-    
+            
             diff = len(sheet.columns)-len(header)
             sheet.columns = header + ['' for d in range(diff)]
 
@@ -82,6 +85,7 @@ if uploaded_file is not None:
             sheet = sheet.dropna(subset=['Date'])
             sheet = sheet.set_index('Date')
             #sheet = sheet.iloc[1:,idxs]
+            
             allsheets = allsheets.append(sheet)
         #st.date_input()
         min_d=min(allsheets.index)
@@ -89,9 +93,10 @@ if uploaded_file is not None:
         dcol=st.beta_columns(2)
         start_date=dcol[0].date_input("start",min_d,min_d,max_d)
         end_date=dcol[1].date_input("end",max_d,min_d,max_d)
-        #st.bar_chart(allsheets.loc[start_date:end_date].dropna())
-        fig = go.Figure()
+        
+
         df = allsheets.loc[start_date:end_date]#.dropna()
+        df = allsheets
         df = df.iloc[1:,idxs]
         df = df.replace(0, np.nan)
         #df = df.set_index('Date')
@@ -99,13 +104,38 @@ if uploaded_file is not None:
         #,['','ols','lowess'])
         
         df = df.replace('-',np.nan).applymap(float)
-        #st.write(df)
-
+        
         fig = px.scatter(df, trendline='lowess' if trend else '')
-        st.plotly_chart(fig, use_container_width=True)
-        lookdate=st.date_input("specific date",start_date,start_date,end_date)
-        if lookdate:
-            st.write(allsheets.loc[str(lookdate)].replace(np.nan,'').replace(0,''))
+        fig.update_yaxes(title_text='Value')
+        fig.update_layout({
+                #"plot_bgcolor": "rgba(0, 0, 0, 0)",
+                "paper_bgcolor": "rgba(0, 0, 0, 0)",
+                "autosize":True
+                #"use_container_width": True
+                })
+                
+
+        selected_points = plotly_events(fig,select_event=True)
+        #st.write(selected_points)
+
+        t = np.linspace(0, 20, 100)
+        x, y, z = np.cos(t), np.sin(t), t
+
+        #fig2 = px.scatter_3d(df,x=x,y=y, z=z)
+        #fig2.update_layout({
+        #    "plot_bgcolor": "rgba(0, 0, 0, 0)",
+        #    "paper_bgcolor": "rgba(0, 0, 0, 0)",
+        #    })
+        #selected_points2 = plotly_events(fig2,select_event=True)
+        #st.write(selected_points2)
+
+        #st.plotly_chart(fig, use_container_width=True)
+        #lookdate=st.date_input("specific date",start_date,start_date,end_date)
+        if selected_points:
+            for sel in selected_points:
+                with st.beta_expander(sel['x']):
+                    dfx=allsheets.loc[str(sel['x'])].replace(np.nan,'').replace(0,'')
+                    st.dataframe(dfx.reset_index().style.format()) #{'INSERT Amount':'${:20,.2f}','INSERT Balance':'${:20,.2f}'}).highlight_max(color='lightgreen'))
         #st.write(df)
         #results = px.get_trendline_results(fig)
         #st.write(results.iloc[0,1].model)
